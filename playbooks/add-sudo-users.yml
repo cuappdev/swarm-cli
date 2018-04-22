@@ -1,0 +1,55 @@
+---
+- name: install users
+  hosts: all
+  become: yes
+  vars:
+    users:
+      - appdev
+  tasks:
+    - name: ensure wheel group exists
+      group: 
+        name: wheel
+        state: present
+    - name: allow wheel group to have passwordless sudo
+      lineinfile:
+        dest: /etc/sudoers
+        state: present
+        regexp: '^%wheel'
+        line: '%wheel ALL=(ALL) NOPASSWD: ALL'
+        validate: visudo -cf %s
+    - name: add users to wheel group
+      user:
+        name: "{{ item }}"
+        state: present
+        createhome: yes
+        shell: /bin/bash
+        groups: wheel
+        append: yes
+      with_items: "{{ users }}"
+    - name: ensure users have .ssh directory
+      file:
+        name: "/home/{{ item }}/.ssh"
+        state: directory
+        owner: "{{ item }}"
+        mode: 0700
+      with_items: "{{ users }}"
+    - name: copy ssh public keys to users .ssh
+      copy:
+        src: server.pem.pub
+        dest: "/home/{{ item }}/.ssh/id_rsa.pub"
+        owner: "{{ item }}"
+        mode: 0644
+      with_items: "{{ users }}"
+    - name: copy ssh private keys to users .ssh
+      copy:
+        src: server.pem
+        dest: "/home/{{ item }}/.ssh/id_rsa"
+        owner: "{{ item }}"
+        mode: 0600
+      with_items: "{{ users }}"
+    - name: make ssh keys authorized for all users
+      authorized_key:
+        user: "{{ item }}"
+        state: present
+        key: "{{ lookup('file', 'server.pem.pub') }}"
+      with_items: "{{ users }}"

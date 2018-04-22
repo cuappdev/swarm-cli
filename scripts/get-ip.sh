@@ -1,0 +1,1 @@
+ifconfig enp0s8 | awk '/ddr:[0-9]/ {sub(/addr:/, ""); print $2}'

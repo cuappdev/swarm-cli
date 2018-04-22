@@ -1,0 +1,1 @@
+cat /vagrant/server.pem.pub > /home/vagrant/.ssh/authorized_keys

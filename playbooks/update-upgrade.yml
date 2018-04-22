@@ -1,0 +1,20 @@
+---
+- name: update and upgrade
+  hosts: all
+  become: yes
+  vars:
+    do_update: yes
+  tasks:
+    - name: update and upgrade packages
+      block:
+        - apt:
+            name: aptitude
+            state: present
+        - shell: |
+            rm -rf /var/lib/apt/lists/*
+        - shell: |
+            apt-get clean
+        - apt:
+            upgrade: full
+            update_cache: yes
+      when: do_update == "yes"

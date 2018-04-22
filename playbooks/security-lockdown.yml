@@ -1,0 +1,31 @@
+---
+- name: install security policies
+  hosts: all
+  become: yes
+  vars:
+    firewall_allowed_tcp_ports:
+      - "22"
+      - "80"
+      - "2377"
+      - "7946"
+    firewall_allowed_udp_ports:
+      - "4789"
+      - "7946"
+  environment:
+    LC_ALL: en_US.UTF-8
+    LANG: en_US.UTF-8
+    LANGUAGE: en_US.UTF-8
+  tasks:
+    - name: disallow root ssh access
+      lineinfile: 
+        dest: /etc/ssh/sshd_config 
+        regexp: "^PermitRootLogin" 
+        line: "PermitRootLogin no" 
+        state: present
+      notify:
+      - restart sshd
+  handlers:
+    - name: restart sshd
+      service: name=sshd state=restarted
+  roles:
+    - firewall
