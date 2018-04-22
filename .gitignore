@@ -3,3 +3,5 @@
 *.pub
 hosts
 *.log
+venv
+.bld
