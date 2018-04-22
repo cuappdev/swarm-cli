@@ -17,6 +17,10 @@ Vagrant.configure("2") do |config|
       # Enable shared folder
       node.vm.synced_folder ".", "/vagrant"
 
+      # Copy in SSH key
+      node.vm.provision "shell", inline: <<-SHELL
+        cat /vagrant/server.pem.pub > /home/vagrant/.ssh/authorized_keys
+      SHELL
     end
 
   end  
