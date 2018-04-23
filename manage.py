@@ -1,4 +1,4 @@
-import os, configparser, subprocess, shutil, sys, math
+import os, configparser, subprocess, shutil, sys, math, distutils.dir_util
 from jinja2 import Environment, FileSystemLoader, Template
 
 DRY_RUN = True
@@ -12,7 +12,8 @@ class Config:
     self.current_dir = os.path.dirname(os.path.abspath(__file__))
     
     self.scripts_dir = os.path.join(self.current_dir, 'scripts')
-    self.playbooks_dir = os.path.join(self.current_dir, 'playbooks')       
+    self.playbooks_dir = os.path.join(self.current_dir, 'playbooks')
+    self.roles_dir = os.path.join(self.current_dir, 'roles')       
     self.ansible_cfg_dir = os.path.join(self.current_dir, 'ansible-cfg')
     self.vagrant_dir = os.path.join(self.current_dir, 'vagrant')
     self.bld_dir = os.path.join(self.current_dir, '.bld')
@@ -33,6 +34,7 @@ class Config:
     print("Current directory = " + self.current_dir)
     print("Scripts directory = " + self.scripts_dir)
     print("Playbooks directory = " + self.playbooks_dir)
+    print("Roles directory = " + self.roles_dir)
     print("Ansible config directory = " + self.ansible_cfg_dir)
     print("Vagrant directory = " + self.vagrant_dir)
     print(".bld directroy = " + self.bld_dir)
@@ -112,27 +114,92 @@ class Testbed:
     self.ensure_compiled()
     subprocess.run(['vagrant', 'destroy', '-f'], cwd=self.config.testbed_dir)  
 
+class Swarm:
 
+  def __init__(self):
+    self.testbed = Testbed()
+    self.config = self.testbed.config
+    
+    if not os.path.exists(self.config.build_dir):
+      os.makedirs(self.config.build_dir)
+    
+    if self.config.using_testbed:
+      self.hosts_buildfile = os.path.join(self.config.testbed_dir, 'hosts')
+      self.initial_ansible_config = 'vagrant.cfg'
+    else:
+      self.hosts_buildfile = self.config.hosts_file
+      self.initial_ansible_config = 'droplet.cfg'      
+
+  def compile(self):
+    shutil.copy(
+      self.config.public_key_file, 
+      os.path.join(self.config.build_dir, 'server.pem.pub'))
+    shutil.copy(
+      self.config.private_key_file, 
+      os.path.join(self.config.build_dir, 'server.pem'))
+    os.chmod(os.path.join(self.config.build_dir, 'server.pem'), 400)
+    
+    distutils.dir_util.copy_tree(
+      self.config.roles_dir, 
+      os.path.join(self.config.build_dir, 'roles'))
+
+    distutils.dir_util.copy_tree(
+      self.config.playbooks_dir,
+      self.config.build_dir)
+    distutils.dir_util.copy_tree(
+      self.config.ansible_cfg_dir,
+      self.config.build_dir)
+    
+    shutil.copy(
+      self.hosts_buildfile,
+      os.path.join(self.config.build_dir, 'hosts'))
+  
+  def provision(self):
+    subprocess.Popen(
+      ['ansible-playbook', 'python-bootstrap.yml'], 
+      cwd=self.config.build_dir, 
+      env=dict(os.environ, ANSIBLE_CONFIG=self.initial_ansible_config))
+    if not self.config.using_testbed:
+      subprocess.Popen(
+        ['ansible-playbook', 'update-upgrade.yml'], 
+        cwd=self.config.build_dir, 
+        env=dict(os.environ, ANSIBLE_CONFIG=self.initial_ansible_config))
+    subprocess.Popen(
+      ['ansible-playbook', 'add-sudo-users.yml'], 
+      cwd=self.config.build_dir, 
+      env=dict(os.environ, ANSIBLE_CONFIG=self.initial_ansible_config))
+    subprocess.Popen(
+      ['ansible-playbook', 'security-lockdown.yml'], 
+      cwd=self.config.build_dir, 
+      env=dict(os.environ, ANSIBLE_CONFIG='deploy.cfg'))
+    subprocess.Popen(
+      ['ansible-playbook', 'install-docker.yml'], 
+      cwd=self.config.build_dir, 
+      env=dict(os.environ, ANSIBLE_CONFIG='deploy.cfg'))    
+      
 def usage():
   print("Swarm CLI tool\n")
   print("Use this tool to setup, test, work with, and deploy to a Docker Swarm cluster.\n")
   print("REFERENCE")
   print("python manage.py config - print out the complete configuration of the tool described by the swarm.ini file")
+  print("")
   print("python manage.py testbed compile - compile the Vagrant testbed in order to launch some test nodes")
   print("python manage.py testbed up - boot up all nodes in the Vagrant testbed")
   print("python manage.py testbed halt - power down all nodes in the Vagrant testbed")
   print("python manage.py testbed destroy - destroy all nodes in the Vagrant testbed")  
-  
+  print("")
+  print("python manage.py swarm compile - compile the Ansible setup necessary to provision and deploy to the target")  
 
 def command():
   if len(sys.argv) == 1:
     usage()
     return
-
-  testbed = Testbed()
+  swarm = Swarm()
+  testbed = swarm.testbed
+  config = swarm.config
   service = sys.argv[1]
   if service == 'config':
-    testbed.config.print_config()
+    config.print_config()
   elif service == 'testbed':
     if len(sys.argv) == 2:
       usage()
@@ -146,6 +213,17 @@ def command():
       testbed.halt()
     elif option == 'destroy':
       testbed.halt()
+    else:
+      usage()
+  elif service == 'swarm':
+    if len(sys.argv) == 2:
+      usage()
+      return
+    option = sys.argv[2]
+    if option == 'compile':
+      swarm.compile()
+    elif option == 'provision':
+      swarm.provision()
     else:
       usage()
   else:
