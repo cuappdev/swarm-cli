@@ -188,8 +188,9 @@ def usage():
   print("python manage.py testbed halt - power down all nodes in the Vagrant testbed")
   print("python manage.py testbed destroy - destroy all nodes in the Vagrant testbed")  
   print("")
-  print("python manage.py swarm compile - compile the Ansible setup necessary to provision and deploy to the target")  
-
+  print("python manage.py swarm compile - compile the Ansible setup necessary to provision and deploy to the target machines")  
+  print("python manage.py swarm provision - provision the target machines using the Ansible setup")  
+  
 def command():
   if len(sys.argv) == 1:
     usage()
