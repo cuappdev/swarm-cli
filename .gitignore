@@ -4,4 +4,4 @@
 hosts
 *.log
 venv
-bld
+.bld
