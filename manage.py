@@ -53,8 +53,6 @@ class Testbed:
 
   def __init__(self):
     self.config = Config()
-    if not os.path.exists(self.config.testbed_dir):
-      os.makedirs(self.config.testbed_dir)
     
     self.env = Environment(
       loader=FileSystemLoader(self.config.current_dir), 
@@ -70,6 +68,12 @@ class Testbed:
     self.num_workers = self.config.testbed_size - self.num_managers
 
   def compile(self):
+    if not os.path.exists(self.config.testbed_dir):
+      os.makedirs(self.config.testbed_dir)
+    else:
+      shutil.rmtree(self.config.testbed_dir)
+      os.makedirs(self.config.testbed_dir)      
+
     template_outfile = os.path.join(self.config.testbed_dir, 'Vagrantfile')
     with open(template_outfile, 'w+') as file:
       file.write(self.template.render(self.template_context))
@@ -82,7 +86,7 @@ class Testbed:
         elif i == self.num_managers:
           file.write('\n[workers]\n')
         
-        ip_str = self.config.ip_mask_24 + str(i + 1 + self.config.ip_mask_8_offset)
+        ip_str = self.config.ip_mask_24 + '.' + str(i + 1 + self.config.ip_mask_8_offset)
         file.write(ip_str + '\n')
     
     shutil.copyfile(
@@ -155,27 +159,32 @@ class Swarm:
       os.path.join(self.config.build_dir, 'hosts'))
   
   def provision(self):
+    temp_env = os.environ.copy()
+    
+    temp_env['ANSIBLE_CONFIG'] = self.initial_ansible_config
     subprocess.Popen(
       ['ansible-playbook', 'python-bootstrap.yml'], 
       cwd=self.config.build_dir, 
-      env=dict(os.environ, ANSIBLE_CONFIG=self.initial_ansible_config))
+      env=temp_env).wait()
     if not self.config.using_testbed:
       subprocess.Popen(
         ['ansible-playbook', 'update-upgrade.yml'], 
         cwd=self.config.build_dir, 
-        env=dict(os.environ, ANSIBLE_CONFIG=self.initial_ansible_config))
+        env=temp_env).wait()
     subprocess.Popen(
       ['ansible-playbook', 'add-sudo-users.yml'], 
       cwd=self.config.build_dir, 
-      env=dict(os.environ, ANSIBLE_CONFIG=self.initial_ansible_config))
+      env=temp_env).wait()
+    
+    temp_env['ANSIBLE_CONFIG'] = 'deploy.cfg'  
     subprocess.Popen(
       ['ansible-playbook', 'security-lockdown.yml'], 
       cwd=self.config.build_dir, 
-      env=dict(os.environ, ANSIBLE_CONFIG='deploy.cfg'))
+      env=temp_env).wait()
     subprocess.Popen(
       ['ansible-playbook', 'install-docker.yml'], 
       cwd=self.config.build_dir, 
-      env=dict(os.environ, ANSIBLE_CONFIG='deploy.cfg'))    
+      env=temp_env).wait()
       
 def usage():
   print("Swarm CLI tool\n")
