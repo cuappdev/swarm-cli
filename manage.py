@@ -15,10 +15,11 @@ class Config:
     self.playbooks_dir = os.path.join(self.current_dir, 'playbooks')
     self.roles_dir = os.path.join(self.current_dir, 'roles')       
     self.ansible_cfg_dir = os.path.join(self.current_dir, 'ansible-cfg')
-    self.vagrant_dir = os.path.join(self.current_dir, 'vagrant')
+    self.templates_dir = os.path.join(self.current_dir, 'templates')
     self.bld_dir = os.path.join(self.current_dir, '.bld')
 
     self.using_testbed = bool(self.config['Default']['UsingTestbed'])
+    self.network_interface = self.config['Default']['NetworkInterface']
     self.build_dir = os.path.join(self.bld_dir, self.config['Default']['BuildDirectory'])
     self.compose_dir = os.path.join(self.current_dir, self.config['Default']['ComposeDirectory'])
     self.hosts_file = os.path.join(self.current_dir, self.config['Default']['HostsFile'])
@@ -29,6 +30,7 @@ class Config:
     self.testbed_size = int(self.config['Testbed']['TestbedSize'])
     self.ip_mask_24 = self.config['Testbed']['IPMask24']
     self.ip_mask_8_offset = int(self.config['Testbed']['IPMask8Offset'])
+    self.testbed_network_interface = self.config['Testbed']['NetworkInterface']
   
   def print_config(self):
     print("Current directory = " + self.current_dir)
@@ -36,9 +38,10 @@ class Config:
     print("Playbooks directory = " + self.playbooks_dir)
     print("Roles directory = " + self.roles_dir)
     print("Ansible config directory = " + self.ansible_cfg_dir)
-    print("Vagrant directory = " + self.vagrant_dir)
+    print("Templates directory = " + self.templates_dir)
     print(".bld directroy = " + self.bld_dir)
     print("Using testbed? " + str(self.using_testbed))
+    print("Network interface = " + self.network_interface)
     print("Build directory = " + self.build_dir)
     print("Compose directory = " + self.compose_dir)
     print("Hosts file = " + self.hosts_file)
@@ -47,7 +50,8 @@ class Config:
     print("Testbed directory = " + self.testbed_dir)
     print("Testbed size = " + str(self.testbed_size))
     print("First 24 bits of testbed IPs = " + self.ip_mask_24)
-    print("Offset of last 8 bits of testbed IPs = " + self.ip_mask_8_offset)    
+    print("Offset of last 8 bits of testbed IPs = " + str(self.ip_mask_8_offset))    
+    print("Testbed network interface = " + self.testbed_network_interface)    
 
 class Testbed:
 
@@ -57,7 +61,7 @@ class Testbed:
     self.env = Environment(
       loader=FileSystemLoader(self.config.current_dir), 
       trim_blocks=True)
-    self.template = self.env.get_template('vagrant/Vagrantfile.j2')
+    self.template = self.env.get_template('templates/Vagrantfile.j2')
     self.template_context = {
       'TestbedSize': self.config.testbed_size,
       'IPMask24': self.config.ip_mask_24,
@@ -82,9 +86,9 @@ class Testbed:
     with open(hosts_outfile, 'w+') as file:
       for i in range(self.config.testbed_size):
         if i == 0: 
-          file.write('[managers]\n')
+          file.write('[manager]\n')
         elif i == self.num_managers:
-          file.write('\n[workers]\n')
+          file.write('\n[worker]\n')
         
         ip_str = self.config.ip_mask_24 + '.' + str(i + 1 + self.config.ip_mask_8_offset)
         file.write(ip_str + '\n')
@@ -105,17 +109,14 @@ class Testbed:
       self.compile()
   
   def up(self):
-    self.ensure_compiled()
-    subprocess.run(['vagrant', 'up'], cwd=self.config.testbed_dir)
+    subprocess.run(['vagrant', 'up', '--parallel'], cwd=self.config.testbed_dir)
 
   def halt(self):
-    self.ensure_compiled()
     for i in range(self.config.testbed_size):
       node_str = 'node-'+str(i+1)
       subprocess.run(['vagrant', 'halt', node_str], cwd=self.config.testbed_dir)
 
   def destroy(self):
-    self.ensure_compiled()
     subprocess.run(['vagrant', 'destroy', '-f'], cwd=self.config.testbed_dir)  
 
 class Swarm:
@@ -130,9 +131,12 @@ class Swarm:
     if self.config.using_testbed:
       self.hosts_buildfile = os.path.join(self.config.testbed_dir, 'hosts')
       self.initial_ansible_config = 'vagrant.cfg'
+      self.network_interface = self.config.testbed_network_interface
     else:
       self.hosts_buildfile = self.config.hosts_file
-      self.initial_ansible_config = 'droplet.cfg'      
+      self.initial_ansible_config = 'root.cfg'
+      self.network_interface = self.config.network_interface
+
 
   def compile(self):
     shutil.copy(
@@ -157,7 +161,7 @@ class Swarm:
     shutil.copy(
       self.hosts_buildfile,
       os.path.join(self.config.build_dir, 'hosts'))
-  
+
   def provision(self):
     temp_env = os.environ.copy()
     
@@ -176,7 +180,7 @@ class Swarm:
       cwd=self.config.build_dir, 
       env=temp_env).wait()
     
-    temp_env['ANSIBLE_CONFIG'] = 'deploy.cfg'  
+    temp_env['ANSIBLE_CONFIG'] = 'appdev.cfg'  
     subprocess.Popen(
       ['ansible-playbook', 'security-lockdown.yml'], 
       cwd=self.config.build_dir, 
@@ -185,7 +189,11 @@ class Swarm:
       ['ansible-playbook', 'install-docker.yml'], 
       cwd=self.config.build_dir, 
       env=temp_env).wait()
-      
+    subprocess.Popen(
+      ['ansible-playbook', 'swarm-join.yml', '--extra-vars', 'swarm_iface=' + self.network_interface], 
+      cwd=self.config.build_dir, 
+      env=temp_env).wait()
+
 def usage():
   print("Swarm CLI tool\n")
   print("Use this tool to setup, test, work with, and deploy to a Docker Swarm cluster.\n")
