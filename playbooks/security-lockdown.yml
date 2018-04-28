@@ -6,6 +6,7 @@
     firewall_allowed_tcp_ports:
       - "22"
       - "80"
+      - "443"
       - "2377"
       - "7946"
     firewall_allowed_udp_ports:

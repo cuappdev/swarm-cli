@@ -11,7 +11,6 @@ class Config:
 
     self.current_dir = os.path.dirname(os.path.abspath(__file__))
     
-    self.scripts_dir = os.path.join(self.current_dir, 'scripts')
     self.playbooks_dir = os.path.join(self.current_dir, 'playbooks')
     self.roles_dir = os.path.join(self.current_dir, 'roles')       
     self.ansible_cfg_dir = os.path.join(self.current_dir, 'ansible-cfg')
@@ -34,7 +33,6 @@ class Config:
   
   def print_config(self):
     print("Current directory = " + self.current_dir)
-    print("Scripts directory = " + self.scripts_dir)
     print("Playbooks directory = " + self.playbooks_dir)
     print("Roles directory = " + self.roles_dir)
     print("Ansible config directory = " + self.ansible_cfg_dir)
@@ -162,10 +160,9 @@ class Swarm:
       self.hosts_buildfile,
       os.path.join(self.config.build_dir, 'hosts'))
 
-  def provision(self):
+  def lockdown(self):
     temp_env = os.environ.copy()
-    
-    temp_env['ANSIBLE_CONFIG'] = self.initial_ansible_config
+    temp_env['ANSIBLE_CONFIG'] = 'root.cfg'
     subprocess.Popen(
       ['ansible-playbook', 'python-bootstrap.yml'], 
       cwd=self.config.build_dir, 
@@ -185,13 +182,17 @@ class Swarm:
       ['ansible-playbook', 'security-lockdown.yml'], 
       cwd=self.config.build_dir, 
       env=temp_env).wait()
+
+  def join(self):
+    temp_env = os.environ.copy()
+    temp_env['ANSIBLE_CONFIG'] = 'appdev.cfg'
     subprocess.Popen(
       ['ansible-playbook', 'install-docker.yml'], 
       cwd=self.config.build_dir, 
       env=temp_env).wait()
     subprocess.Popen(
       ['ansible-playbook', 'swarm-join.yml', '--extra-vars', 'swarm_iface=' + self.network_interface], 
-      cwd=self.config.build_dir, 
+      cwd=self.config.build_dir,
       env=temp_env).wait()
 
 def usage():
@@ -205,8 +206,9 @@ def usage():
   print("python manage.py testbed halt - power down all nodes in the Vagrant testbed")
   print("python manage.py testbed destroy - destroy all nodes in the Vagrant testbed")  
   print("")
-  print("python manage.py swarm compile - compile the Ansible setup necessary to provision and deploy to the target machines")  
-  print("python manage.py swarm provision - provision the target machines using the Ansible setup")  
+  print("python manage.py swarm compile - compile the Ansible playbooks, Ansible configurations, SSH keys, and host lists for provisioning the target machines")  
+  print("python manage.py swarm lockdown - lock down access to the target machines")  
+  print("python manage.py swarm join - join the target machines into a Docker Swarm")  
   
 def command():
   if len(sys.argv) == 1:
@@ -240,8 +242,10 @@ def command():
     option = sys.argv[2]
     if option == 'compile':
       swarm.compile()
-    elif option == 'provision':
-      swarm.provision()
+    elif option == 'lockdown':
+      swarm.lockdown()
+    elif option == 'join':
+      swarm.join()
     else:
       usage()
   else:
