@@ -5,3 +5,4 @@ hosts
 *.log
 venv
 .bld
+docker-compose
