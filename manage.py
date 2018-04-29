@@ -17,7 +17,7 @@ class Config:
     self.templates_dir = os.path.join(self.current_dir, 'templates')
     self.bld_dir = os.path.join(self.current_dir, '.bld')
 
-    self.using_testbed = bool(self.config['Default']['UsingTestbed'])
+    self.using_testbed = self.config['Default']['UsingTestbed'] == 'true'
     self.network_interface = self.config['Default']['NetworkInterface']
     self.build_dir = os.path.join(self.bld_dir, self.config['Default']['BuildDirectory'])
     self.compose_dir = os.path.join(self.current_dir, self.config['Default']['ComposeDirectory'])
