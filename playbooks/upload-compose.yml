@@ -4,5 +4,6 @@
   become: yes
   tasks:
     - name: copy over docker compose
-      src: docker-compsose
-      dest: /usr/src/app
+      copy:
+        src: docker-compose
+        dest: /usr/src/app

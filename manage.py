@@ -150,6 +150,10 @@ class Swarm:
       os.path.join(self.config.build_dir, 'roles'))
 
     distutils.dir_util.copy_tree(
+      self.config.compose_dir, 
+      os.path.join(self.config.build_dir, 'docker-compose'))
+
+    distutils.dir_util.copy_tree(
       self.config.playbooks_dir,
       self.config.build_dir)
     distutils.dir_util.copy_tree(
