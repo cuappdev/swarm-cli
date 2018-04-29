@@ -6,4 +6,4 @@
     - name: copy over docker compose
       copy:
         src: docker-compose
-        dest: /usr/src/app
+        dest: /home/appdev/deploy
