@@ -194,6 +194,14 @@ class Swarm:
       ['ansible-playbook', 'swarm-join.yml', '--extra-vars', 'swarm_iface=' + self.network_interface], 
       cwd=self.config.build_dir,
       env=temp_env).wait()
+  
+  def upload(self):
+    temp_env = os.environ.copy()
+    temp_env['ANSIBLE_CONFIG'] = 'appdev.cfg'
+    subprocess.Popen(
+      ['ansible-playbook', 'upload-compose.yml'], 
+      cwd=self.config.build_dir, 
+      env=temp_env).wait()
 
 def usage():
   print("Swarm CLI tool\n")
@@ -206,9 +214,10 @@ def usage():
   print("python manage.py testbed halt - power down all nodes in the Vagrant testbed")
   print("python manage.py testbed destroy - destroy all nodes in the Vagrant testbed")  
   print("")
-  print("python manage.py swarm compile - compile the Ansible playbooks, Ansible configurations, SSH keys, and host lists for provisioning the target machines")  
+  print("python manage.py swarm compile - compile all the deployment files for provisioning the target machines")  
   print("python manage.py swarm lockdown - lock down access to the target machines")  
-  print("python manage.py swarm join - join the target machines into a Docker Swarm")  
+  print("python manage.py swarm join - join the target machines into a Docker Swarm")
+  print("python manage.py swarm upload - upload the Docker Compose file to the first manager of the Swarm")  
   
 def command():
   if len(sys.argv) == 1:
@@ -246,6 +255,8 @@ def command():
       swarm.lockdown()
     elif option == 'join':
       swarm.join()
+    elif option == 'upload':
+      swarm.upload()
     else:
       usage()
   else:

@@ -1,0 +1,8 @@
+---
+- name: upload docker compose
+  hosts: manager[0]
+  become: yes
+  tasks:
+    - name: copy over docker compose
+      src: docker-compsose
+      dest: /usr/src/app
