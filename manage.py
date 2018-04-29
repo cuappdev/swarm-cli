@@ -207,6 +207,14 @@ class Swarm:
       cwd=self.config.build_dir, 
       env=temp_env).wait()
 
+  def down(self):
+    temp_env = os.environ.copy()
+    temp_env['ANSIBLE_CONFIG'] = 'appdev.cfg'
+    subprocess.Popen(
+      ['ansible-playbook', 'stack-down.yml'], 
+      cwd=self.config.build_dir, 
+      env=temp_env).wait()
+
 def usage():
   print("Swarm CLI tool\n")
   print("Use this tool to setup, test, work with, and deploy to a Docker Swarm cluster.\n")
@@ -222,7 +230,8 @@ def usage():
   print("python manage.py swarm lockdown - lock down access to the target machines")  
   print("python manage.py swarm join - join the target machines into a Docker Swarm")
   print("python manage.py swarm upload - upload the Docker Compose file to the first manager of the Swarm")  
-  
+  print("python manage.py swarm down - remove Docker Stack, containers, and images from all machines")    
+
 def command():
   if len(sys.argv) == 1:
     usage()
@@ -261,6 +270,8 @@ def command():
       swarm.join()
     elif option == 'upload':
       swarm.upload()
+    elif option == 'down':
+      swarm.down()
     else:
       usage()
   else:

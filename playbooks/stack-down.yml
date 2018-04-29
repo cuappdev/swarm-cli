@@ -1,0 +1,19 @@
+---
+- name: remove stack
+  hosts: manager[0]
+  become: yes
+  tasks:
+    - name: remove stack
+      command: docker stack rm the-stack
+      ignore_errors: yes
+
+- name: remove all docker containers and images
+  hosts: all
+  become: yes
+  tasks: 
+    - name: remove all docker containers and images
+      command: "{{ item }}"
+      with_items:
+        - sudo docker kill $(sudo docker ps -q)
+        - sudo docker rm $(sudo docker ps -a -q)
+        - sudo docker rmi $(sudo docker images -q)
