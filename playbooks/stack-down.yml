@@ -12,8 +12,8 @@
   become: yes
   tasks: 
     - name: remove all docker containers and images
-      command: "{{ item }}"
-      with_items:
-        - sudo docker kill $(sudo docker ps -q)
-        - sudo docker rm $(sudo docker ps -a -q)
-        - sudo docker rmi $(sudo docker images -q)
+      shell: |
+        sudo docker kill $(sudo docker ps -q)
+        sudo docker rm -f $(sudo docker ps -a -q)
+        sudo docker rmi -f $(sudo docker images -q)
+      ignore_errors: yes

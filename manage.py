@@ -143,7 +143,7 @@ class Swarm:
     shutil.copy(
       self.config.private_key_file, 
       os.path.join(self.config.build_dir, 'server.pem'))
-    os.chmod(os.path.join(self.config.build_dir, 'server.pem'), 400)
+    os.chmod(os.path.join(self.config.build_dir, 'server.pem'), 0o400)
     
     distutils.dir_util.copy_tree(
       self.config.roles_dir, 
