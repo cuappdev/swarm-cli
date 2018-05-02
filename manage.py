@@ -12,9 +12,11 @@ class Config:
 
   def __init__(self, bundle_path=None):
     self.config = configparser.ConfigParser()
-    self.config.read('swarm.ini')
 
     self.current_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    self.config.read(os.path.join(self.current_dir, 'swarm.ini'))
+
     self.playbooks_dir = os.path.join(self.current_dir, 'playbooks')
     self.roles_dir = os.path.join(self.current_dir, 'roles')       
     self.ansible_cfg_dir = os.path.join(self.current_dir, 'ansible-cfg')
@@ -196,6 +198,12 @@ class Swarm:
       env=temp_env).wait()
 
   def join(self):
+    if os.name == 'nt':
+      subprocess.Popen(
+        ['vagrant', 'ssh', '"rm -rf ~/deploy; cp -r /deploy ~; chmod 0400 ~/deploy/.bld/server.pem; python3.5 ~/deploy/manage.py swarm join"'], 
+        cwd=self.config.current_dir).wait()
+      return
+      
     temp_env = os.environ.copy()
     temp_env['ANSIBLE_CONFIG'] = 'appdev.cfg'
     subprocess.Popen(
@@ -208,6 +216,12 @@ class Swarm:
       env=temp_env).wait()
   
   def configure(self):
+    if os.name == 'nt':
+      subprocess.Popen(
+        ['vagrant', 'ssh', '-c', '"rm -rf ~/deploy; cp -r /deploy ~; chmod 0400 ~/deploy/.bld/server.pem; python3.5 ~/deploy/manage.py swarm configure"'], 
+        cwd=self.config.current_dir).wait()
+      return
+      
     temp_env = os.environ.copy()
     temp_env['ANSIBLE_CONFIG'] = 'appdev.cfg'
     subprocess.Popen(
@@ -216,6 +230,12 @@ class Swarm:
       env=temp_env).wait()
 
   def clean(self):
+    if os.name == 'nt':
+      subprocess.Popen(
+        ['vagrant', 'ssh', '"rm -rf ~/deploy; cp -r /deploy ~; chmod 0400 ~/deploy/.bld/server.pem; python3.5 ~/deploy/manage.py swarm clean"'], 
+        cwd=self.config.current_dir).wait()
+      return
+      
     temp_env = os.environ.copy()
     temp_env['ANSIBLE_CONFIG'] = 'appdev.cfg'
     subprocess.Popen(

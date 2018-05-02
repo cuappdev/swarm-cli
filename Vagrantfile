@@ -19,6 +19,7 @@ Vagrant.configure("2") do |config|
     sudo apt-get update
     sudo apt-get install -y ansible
     sudo apt-get install -y python3-pip
+    pip3 install -r /deploy/requirements.txt
   SHELL
 
 end

@@ -124,17 +124,3 @@
         --advertise-addr={{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}:2377
         --token={{ token }}
         {{ groups['swarm_manager_ips'][0] }}:2377
-
-- hosts: all
-  become: yes
-  tasks:
-    - name: copy over registry tls certificate
-      copy:
-        src: domain.crt
-        dest: /etc/docker/certs.d/104.236.60.90:443/ca.crt
-    # - name: copy over registry tls certificate again
-    #   copy:
-    #     src: domain.crt
-    #     dest: /usr/local/share/ca-certificates/104.236.60.90.crt
-    # - name: update the ubuntu trusted certificates
-    #   command: update-ca-certificates
