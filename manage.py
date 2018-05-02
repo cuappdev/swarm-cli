@@ -175,6 +175,12 @@ class Swarm:
       os.path.join(self.config.build_dir, 'hosts'))
 
   def lockdown(self):
+    if os.name == 'nt':
+      subprocess.Popen(
+        ['vagrant', 'ssh', '"rm -rf ~/deploy; cp -r /deploy ~; chmod 0400 ~/deploy/.bld/server.pem; python3.5 ~/deploy/manage.py swarm join"'], 
+        cwd=self.config.current_dir).wait()
+      return
+    
     temp_env = os.environ.copy()
     temp_env['ANSIBLE_CONFIG'] = 'root.cfg'
     subprocess.Popen(
