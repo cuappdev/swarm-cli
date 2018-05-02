@@ -177,7 +177,7 @@ class Swarm:
   def lockdown(self):
     if os.name == 'nt':
       subprocess.Popen(
-        ['vagrant', 'ssh', '"rm -rf ~/deploy; cp -r /deploy ~; chmod 0400 ~/deploy/.bld/server.pem; python3.5 ~/deploy/manage.py swarm join"'], 
+        ['vagrant', 'ssh', '-c' '"rm -rf ~/deploy; cp -r /deploy ~; chmod 0400 ~/deploy/.bld/server.pem; python3.5 ~/deploy/manage.py swarm lockdown"'], 
         cwd=self.config.current_dir).wait()
       return
     
@@ -206,7 +206,7 @@ class Swarm:
   def join(self):
     if os.name == 'nt':
       subprocess.Popen(
-        ['vagrant', 'ssh', '"rm -rf ~/deploy; cp -r /deploy ~; chmod 0400 ~/deploy/.bld/server.pem; python3.5 ~/deploy/manage.py swarm join"'], 
+        ['vagrant', 'ssh', '-c', '"rm -rf ~/deploy; cp -r /deploy ~; chmod 0400 ~/deploy/.bld/server.pem; python3.5 ~/deploy/manage.py swarm join"'], 
         cwd=self.config.current_dir).wait()
       return
       
@@ -238,7 +238,7 @@ class Swarm:
   def clean(self):
     if os.name == 'nt':
       subprocess.Popen(
-        ['vagrant', 'ssh', '"rm -rf ~/deploy; cp -r /deploy ~; chmod 0400 ~/deploy/.bld/server.pem; python3.5 ~/deploy/manage.py swarm clean"'], 
+        ['vagrant', 'ssh', '-c', "rm -rf ~/deploy; cp -r /deploy ~; chmod 0400 ~/deploy/.bld/server.pem; python3.5 ~/deploy/manage.py swarm clean"'], 
         cwd=self.config.current_dir).wait()
       return
       
