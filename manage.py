@@ -238,7 +238,7 @@ class Swarm:
   def clean(self):
     if os.name == 'nt':
       subprocess.Popen(
-        ['vagrant', 'ssh', '-c', "rm -rf ~/deploy; cp -r /deploy ~; chmod 0400 ~/deploy/.bld/server.pem; python3.5 ~/deploy/manage.py swarm clean"'], 
+        ['vagrant', 'ssh', '-c', '"rm -rf ~/deploy; cp -r /deploy ~; chmod 0400 ~/deploy/.bld/server.pem; python3.5 ~/deploy/manage.py swarm clean"'], 
         cwd=self.config.current_dir).wait()
       return
       
