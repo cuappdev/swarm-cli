@@ -231,7 +231,7 @@ class Swarm:
     temp_env = os.environ.copy()
     temp_env['ANSIBLE_CONFIG'] = 'appdev.cfg'
     subprocess.Popen(
-      ['ansible-playbook', 'upload-compose.yml'], 
+      ['ansible-playbook', 'configure-stack.yml'], 
       cwd=self.config.build_dir, 
       env=temp_env).wait()
 

@@ -11,9 +11,12 @@
   hosts: all
   become: yes
   tasks: 
-    - name: remove all docker containers and images
-      shell: |
-        sudo docker kill $(sudo docker ps -q)
-        sudo docker rm -f $(sudo docker ps -a -q)
-        sudo docker rmi -f $(sudo docker images -q)
+    - name: stop all running docker containers
+      command: sudo docker kill $(sudo docker ps -q)
+      ignore_errors: yes
+    - name: remove all docker containers
+      command: sudo docker rm -f $(sudo docker ps -a -q)
+      ignore_errors: yes
+    - name: remove all docker images
+      command: sudo docker rmi -f $(sudo docker images -q)
       ignore_errors: yes
