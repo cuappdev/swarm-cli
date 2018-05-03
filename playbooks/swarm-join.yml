@@ -67,7 +67,7 @@
     - name: initialize swarm cluster
       shell: >
         docker swarm init
-        --advertise-addr={{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}:2377
+        --advertise-addr={{ inventory_hostname }}:2377
       when: "'swarm_manager_operational' not in groups"
       register: bootstrap_first_node
 
@@ -83,7 +83,7 @@
 - hosts: swarm_manager_operational[0]
   become: true
   vars:
-    iface: "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}"
+    iface: "{{ inventory_hostname }}"
   tasks:
     - name: retrieve swarm manager token
       shell: docker swarm join-token -q manager
@@ -95,7 +95,7 @@
 
     - name: populate list of manager ips
       add_host:
-        hostname: "{{ hostvars[item]['ansible_default_ipv4']['address']}}"
+        hostname: "{{ item }}"
         groups: swarm_manager_ips
       with_items: "{{ ansible_play_hosts | default(play_hosts) }}"
 
@@ -108,7 +108,7 @@
     - name: join manager nodes to cluster
       shell: >
         docker swarm join
-        --advertise-addr={{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}:2377
+        --advertise-addr={{ inventory_hostname }}:2377
         --token={{ token }}
         {{ groups['swarm_manager_ips'][0] }}:2377
 
@@ -121,6 +121,6 @@
     - name: join worker nodes to cluster
       shell: >
         docker swarm join
-        --advertise-addr={{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}:2377
+        --advertise-addr={{ inventory_hostname }}:2377
         --token={{ token }}
         {{ groups['swarm_manager_ips'][0] }}:2377
