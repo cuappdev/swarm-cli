@@ -6,3 +6,4 @@ hosts
 venv
 .bld
 docker-compose
+swarm.ini
