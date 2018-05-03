@@ -1,5 +1,5 @@
 [Default]
-UsingTestbed=false
+UsingTestbed=true
 
 [Testbed]
 TestbedSize=2
