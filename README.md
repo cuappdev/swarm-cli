@@ -1,12 +1,14 @@
 # Docker Swarm - Command Line Interface Tool
 
-This is a command line tool to setup and use a Docker Swarm cluster. It specifically provided the following operations:
+This is a command line tool to setup and use a Docker Swarm cluster. It specifically provides the following operations:
 - lockdown and secure each machine in the cluster
 - install Docker and join each machine into the Swarm
-- *(WIP)* deploy a Docker Stack to the Swarm
+- configure the Swarm to be ready for a Docker Stack
 - boot up a testbed on which to test deployment
 
 It uses Ansible to for provisioning the cluster. Ansible is incredibly flexible, but also is sensitive to relative paths of configuration files, playbooks, and other local files. In addition, using a Swarm cluster requires an inventory of hosts, SSH keys, and a Docker Compose file to specify deployment setup. As such, this project aims to separate files cleanly and provide a simple interface to configure deployments.
+
+We compartmentalize the deployment information for each of our backends into *deployment bundles*. They contain the information related to the security of the cluster and the Docker Compose file.
 
 ## Install
 
@@ -28,29 +30,50 @@ pip install -r requirements.txt # in virtual environment
 python manage.py # in virtual environment, run this command to check
 ```
 
+Once you've done that, copy `swarm.ini.in` to `swarm.ini`. You will use `swarm.ini` for configuration, whereas `swarm.ini.in` is the initial template.
+```
+cp swarm.ini.in swarm.ini
+```
+
 ### Windows
 
-Ansible does not support Windows so far, and so you must run certain commands from within a Vagrant machine. A Vagrantfile for this machine has been provided.
+Ansible does not support Windows at the moment, and so you must run certain commands from within a Vagrant machine. A Vagrantfile for this machine has been provided. Simply run `vagrant up` to boot up the machine and make sure that it is running when using this utility. The tool has been written such that if it detects it is on Windows, it will run the command inside the machine automatically. You won't ever need to SSH into the machine, but it will have some extra delay.
+
+## Deployment bundles
+
+A deployment bundle is a folder with the following contents and structure:
+
+```
+docker-compose/
+  docker-compose.yml
+  ...
+domain.crt
+hosts
+server.pem
+server.pem.pub
+```
+
+The `docker-compose` folder contains a production ready Docker Compose file `docker-compose.yml` that can be deployed to a Swarm. In this folder, any additional `Dockerfile`s must go here to build the images used in production.
+
+The `domain.crt` is a TLS certificate for AppDev's private Docker Registry. This is what will allow our Swarms to pull prebuilt images of our services when we deploy or scale. This certificate lives in the `registry` bundle, which is a special bundle.
+
+The `hosts` file is an Ansible inventory that lists the IPs of the machines we use to deploy. It is an INI-like file that is separated into to sections, `[manager]` and `[worker]`, where the machines whose IPs listed under each will become either a manager or worker node in the swarm.
+
+The `server.pem` and `server.pem.pub` files are the private and public SSH keys for the machines. These are used to access the machines and setup testbeds to test deployments.
+
 
 ## Configuration: swarm.ini
 
-The `swarm.ini` file provides an interface to easily configure deployment information. A rundown of the file is as follows:
+The `swarm.ini` file (which you should have set up using `swarm.ini.in` - read the instructions) provides an interface to setup a testbed and determines whether or not the tool uses it. A rundown of the file is as follows:
 
 ```
 [Default]
 UsingTestbed=true # Whether or not to deploy to the testbed
-NetworkInterface=eth0 # The network interface over which cluster machines communicate for Docker Swarm
-BuildDirectory=build # Relative path to ./bld in which to place compiled files
-ComposeDirectory=docker-compose # Relative path to directory containing a Compose file
-HostsFile=hosts # Relative path to Ansible inventory listing managers and workers in the swarm
-PublicKeyFile=server.pem.pub # Relative path to a public SSH key
-PrivateKeyFile=server.pem # Relative path to a private SSH key
 
 [Testbed]
 TestbedSize=5 # The number of nodes in the testbed
 IPMask24=192.168.69 # The first 24 bits of the IP addresses to assign machines in the testbed
 IPMask8Offset=50 # The offset of the lower 8 bits of the IP addresses to assign to machines
-NetworkInterface=enp0s8 # The network interface over which testbed machines communicate
 ```
 
 ## Usage and Configuration Details
@@ -61,6 +84,14 @@ These are commands display information about the tool.
 
 This prints out a usage description with all commands and a short description of each one.
 
+### `python manage.py compile <BUNDLE_DIR> testbed`
+
+This compiles the testbed using the parameters in the `swarm.ini` file and the security information included in the bundle `BUNDLE_DIR`. You should run this command *only if* you want to update the testbed. Recompiling will delete Vagrant metadata about machines that have been already created, which means the next `python manage.py testbed up` command will recreate the machines. This wastes space and can be a hassle to clean up later.
+
+### `python manage.py compile <BUNDLE_DIR> swarm`
+
+This compiles the Ansible configuration, inventory, playbooks, security information, and Docker Compose setup into a single directory to ease deployment concerns and eliminate issues with relative paths. The Ansible deployment must be recompiled after every change to the bundle `BUNDLE_DIR`. Unlike with the testbed, it is safe to recompile whenever.
+
 ### `python manage.py config`
 
 This prints out all the information that the tool uses based off of the contents of `swarm.ini`, including deduced absolute paths of important files and directories. This should be used every time the `swarm.ini` file is modified, to make sure the configuration are all correct.
@@ -68,10 +99,6 @@ This prints out all the information that the tool uses based off of the contents
 ## Testbed
 
 This tool includes the option of booting up a testbed cluster of machines using Vagrant and Virtualbox. Each machine can take 5 - 7 minutes to create up, so it's best to keep the testbed size small, and not recompile it once the machines have been created.
-
-### `python manage.py testbed compile`
-
-This compiles the testbed using the parameters in the `swarm.ini` file. You should run this command *only if* you want to update the testbed. Recompiling will delete Vagrant metadata about machines that have been already created, which means the next `... testbed up` command will recreate the machines.
 
 ### `python manage.py testbed up`
 
@@ -87,11 +114,7 @@ This will destroy the the testbed.
 
 ## Swarm
 
-These commands will provision a cluster of machines, locking down their access using SSH keys and joining them into a Docker Swarm.
-
-### `python manage.py swarm compile`
-
-This compiles the Ansible configuration, inventory, playbooks, and SSH keys into a single directory to ease deployment concerns and eliminate issues with relative paths. The Ansible deployment must be recompiled after every change to `swarm.ini`. Unlike with the testbed, it is safe to recompile whenever.
+These commands will provision a cluster of machines, locking down their access using SSH keys and joining them into a Docker Swarm. They also can configure the Swarm to get ready for deployment, and also clean up Docker containers and images off of clusters.
 
 ### `python manage.py swarm lockdown`
 
@@ -108,3 +131,11 @@ Since machines are locked down partially using the `root` user, you can only run
 ### `python manage.py swarm join`
 
 This joins the machines listed in the Ansible inventory into the swarm. It will automatically start a new swarm if it doesn't exist, and join in new workers and managers if they weren't a part of it.
+
+### `python manage.py swarm configure`
+
+This uploads the Docker Compose setup to the first manager in the Swarm, and installs the Docker Registry's TLS certificate on all the hosts. This allows us to deploy our backend on a manager, and all machines to access our private Registry.
+
+### `python manage.py swarm clean`
+
+This stops a Docker Stack (assumed to be called `the-stack`) and removes all containers and images from the Swarm.
