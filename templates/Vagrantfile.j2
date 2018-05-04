@@ -11,6 +11,8 @@ Vagrant.configure("2") do |config|
       # Ubuntu 16.04
       node.vm.box = "ubuntu/xenial64"
 
+      node.vm.hostname = "swarm-node-#{i}"
+
       # Enable an internet connection
       node.vm.network "private_network", ip: "{{ IPMask24 }}.#{i + {{ IPMask8Offset }} }"
       

@@ -16,7 +16,6 @@ Install the following technologies on your system:
 - [Python 3.5 or above](https://www.python.org/downloads/)
 - [virtualenv](https://virtualenv.pypa.io/en/stable/)
 - [Vagrant with Virtualbox](https://www.vagrantup.com/downloads.html)
-- [Vagrant Virtualbox Guest Plugin](https://github.com/dotless-de/vagrant-vbguest)
 - [Ansible](http://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html)
 
 Yes, you read that right. *Python 3.5 or above.* It's [current year](https://www.google.com/search?q=what+is+the+year) for Guido's sake.
@@ -98,7 +97,7 @@ This prints out all the information that the tool uses based off of the contents
 
 ## Testbed
 
-This tool includes the option of booting up a testbed cluster of machines using Vagrant and Virtualbox. Each machine can take 5 - 7 minutes to create up, so it's best to keep the testbed size small, and not recompile it once the machines have been created.
+This tool includes the option of booting up a testbed cluster of machines using Vagrant and Virtualbox. Each machine can take 2 - 5 minutes to create up, so it's best to keep the testbed size small, and not recompile it once the machines have been created.
 
 ### `python manage.py testbed up`
 
