@@ -27,13 +27,15 @@ class Config:
       self.bundle_dir = os.path.abspath(bundle_path)
     else:
       self.bundle_dir = self.build_dir
+
     self.compose_dir = os.path.join(self.bundle_dir, 'docker-compose')
-    self.hosts_file = os.path.join(self.bundle_dir, 'hosts')
+    if (bundle_path != None):
+      self.hosts_file = os.path.join(self.bundle_dir, 'hosts')
+
     self.public_key_file = os.path.join(self.bundle_dir, 'server.pem.pub')
     self.private_key_file = os.path.join(self.bundle_dir, 'server.pem')
     self.registry_crt_file = os.path.join(self.bundle_dir, 'domain.crt')
 
-    self.using_testbed = self.config['Default']['UsingTestbed'] == 'true'
     self.testbed_dir = os.path.join(self.build_dir, 'testbed')
     self.testbed_size = int(self.config['Testbed']['TestbedSize'])
     self.ip_mask_24 = self.config['Testbed']['IPMask24']
@@ -53,12 +55,11 @@ class Config:
         ['', ''],
         ['Bundle directory', self.bundle_dir],
         ['Compose directory', self.compose_dir],
-        ['Hosts file', self.hosts_file],
+        ['Hosts file', self.hosts_file if self.hosts_file != None else ''],
         ['SSH public key file', self.public_key_file],
         ['SSH private key file', self.private_key_file],
         ['Registry TLS Certificate', self.registry_crt_file],        
         ['', ''],
-        ['Using testbed?', self.using_testbed],
         ['Testbed directory', self.testbed_dir],
         ['Testbed size', str(self.testbed_size)],
         ['First 24 bits of testbed IPs', self.ip_mask_24],
@@ -100,7 +101,7 @@ class Testbed:
     with open(template_outfile, 'w+') as file:
       file.write(self.template.render(self.template_context))
     
-    hosts_outfile = os.path.join(self.config.testbed_dir, 'hosts')
+    hosts_outfile = os.path.join(self.config.testbed_dir, 'testbed_hosts')
     with open(hosts_outfile, 'w+') as file:
       for i in range(self.config.testbed_size):
         if i == 0: 
@@ -137,11 +138,7 @@ class Swarm:
     if not os.path.exists(self.config.build_dir):
       os.makedirs(self.config.build_dir)
     
-    if self.config.using_testbed:
-      self.hosts_buildfile = os.path.join(self.config.testbed_dir, 'hosts')
-    else:
-      self.hosts_buildfile = self.config.hosts_file
-
+    self.vagrant_ssh_cmd = '"rm -rf ~/deploy; cp -r /deploy ~; chmod 0400 ~/deploy/.bld/server.pem; python3.5 ~/deploy/manage.py {0} {1}"'
 
   def compile(self):
     shutil.copy(
@@ -170,24 +167,36 @@ class Swarm:
       self.config.ansible_cfg_dir,
       self.config.build_dir)
     
-    shutil.copy(
-      self.hosts_buildfile,
-      os.path.join(self.config.build_dir, 'hosts'))
+    if (self.config.hosts_file != None):
+      shutil.copy(
+        self.config.hosts_file,
+        os.path.join(self.config.build_dir, 'production_hosts'))
 
-  def lockdown(self):
+  def use_proper_hosts(self, is_testbed):
+    if is_testbed:
+      shutil.copy(
+        os.path.join(self.config.testbed_dir, 'testbed_hosts'),
+        os.path.join(self.config.build_dir, 'hosts'))
+    else:
+      shutil.copy(
+        os.path.join(self.config.build_dir, 'production_hosts'),
+        os.path.join(self.config.build_dir, 'hosts'))
+
+  def lockdown(self, is_testbed):
     if os.name == 'nt':
       subprocess.Popen(
-        ['vagrant', 'ssh', '-c' '"rm -rf ~/deploy; cp -r /deploy ~; chmod 0400 ~/deploy/.bld/server.pem; python3.5 ~/deploy/manage.py swarm lockdown"'], 
+        ['vagrant', 'ssh', '-c', self.vagrant_ssh_cmd.format('swarm-testbed' if is_testbed else 'swarm', 'lockdown')], 
         cwd=self.config.current_dir).wait()
       return
     
+    self.use_proper_hosts(is_testbed)
     temp_env = os.environ.copy()
     temp_env['ANSIBLE_CONFIG'] = 'root.cfg'
     subprocess.Popen(
       ['ansible-playbook', 'python-bootstrap.yml'], 
       cwd=self.config.build_dir, 
       env=temp_env).wait()
-    if not self.config.using_testbed:
+    if not is_testbed:
       subprocess.Popen(
         ['ansible-playbook', 'update-upgrade.yml'], 
         cwd=self.config.build_dir, 
@@ -203,13 +212,14 @@ class Swarm:
       cwd=self.config.build_dir, 
       env=temp_env).wait()
 
-  def join(self):
+  def join(self, is_testbed):
     if os.name == 'nt':
       subprocess.Popen(
-        ['vagrant', 'ssh', '-c', '"rm -rf ~/deploy; cp -r /deploy ~; chmod 0400 ~/deploy/.bld/server.pem; python3.5 ~/deploy/manage.py swarm join"'], 
+        ['vagrant', 'ssh', '-c', self.vagrant_ssh_cmd.format('swarm-testbed' if is_testbed else 'swarm', 'join')], 
         cwd=self.config.current_dir).wait()
       return
       
+    self.use_proper_hosts(is_testbed)
     temp_env = os.environ.copy()
     temp_env['ANSIBLE_CONFIG'] = 'appdev.cfg'
     subprocess.Popen(
@@ -221,13 +231,14 @@ class Swarm:
       cwd=self.config.build_dir,
       env=temp_env).wait()
   
-  def configure(self):
+  def configure(self, is_testbed):
     if os.name == 'nt':
       subprocess.Popen(
-        ['vagrant', 'ssh', '-c', '"rm -rf ~/deploy; cp -r /deploy ~; chmod 0400 ~/deploy/.bld/server.pem; python3.5 ~/deploy/manage.py swarm configure"'], 
+        ['vagrant', 'ssh', '-c', self.vagrant_ssh_cmd.format('swarm-testbed' if is_testbed else 'swarm', 'configure')], 
         cwd=self.config.current_dir).wait()
       return
       
+    self.use_proper_hosts(is_testbed)
     temp_env = os.environ.copy()
     temp_env['ANSIBLE_CONFIG'] = 'appdev.cfg'
     subprocess.Popen(
@@ -235,13 +246,14 @@ class Swarm:
       cwd=self.config.build_dir, 
       env=temp_env).wait()
 
-  def clean(self):
+  def clean(self, is_testbed):
     if os.name == 'nt':
       subprocess.Popen(
-        ['vagrant', 'ssh', '-c', '"rm -rf ~/deploy; cp -r /deploy ~; chmod 0400 ~/deploy/.bld/server.pem; python3.5 ~/deploy/manage.py swarm clean"'], 
+        ['vagrant', 'ssh', '-c', self.vagrant_ssh_cmd.format('swarm-testbed' if is_testbed else 'swarm', 'clean')], 
         cwd=self.config.current_dir).wait()
       return
       
+    self.use_proper_hosts(is_testbed)
     temp_env = os.environ.copy()
     temp_env['ANSIBLE_CONFIG'] = 'appdev.cfg'
     subprocess.Popen(
@@ -253,19 +265,22 @@ def usage():
   print("Swarm CLI tool\n")
   print("Use this tool to setup, test, work with, and deploy to a Docker Swarm cluster.\n")
   print("REFERENCE")
-  print("python manage.py compile BUNDLE_DIR swarm - compile the swarm tool using the bundle at path BUNDLE_DIR")  
-  print("python manage.py compile BUNDLE_DIR testbed - compile the testbed using the bundle at path BUNDLE_DIR")  
+  print("python manage.py compile BUNDLE_DIR - compile the testbed and swarm tool using the bundle at path BUNDLE_DIR")
   print("python manage.py config - print out the complete configuration described by the swarm.ini file and the curent compilation")
   print("")
   print("python manage.py testbed up - boot up all nodes in the Vagrant testbed")
   print("python manage.py testbed halt - power down all nodes in the Vagrant testbed")
   print("python manage.py testbed destroy - destroy all nodes in the Vagrant testbed")  
   print("")
-  print("python manage.py swarm lockdown - lock down access to the target machines")  
+  print("****The following swarm operations affect PRODUCTION machines****")
+  print("python manage.py swarm lockdown - lock down access to the target production machines")  
   print("python manage.py swarm join - join the target machines into a Docker Swarm")
   print("python manage.py swarm configure - upload the Docker Compose file to the first manager of the Swarm")  
   print("python manage.py swarm clean - remove Docker Stack, containers, and images from all machines")    
-
+  print("")
+  print("****The following swarm operations affect TESTBED machines****")
+  print("python manage.py swarm-testbed [above command] - applies swarm operation [above command] onto the testbed")    
+  
 def command():
   if len(sys.argv) == 1:
     usage()
@@ -275,20 +290,14 @@ def command():
   testbed = Testbed(config)
   swarm = Swarm(config)
   if service == 'compile':
-    if len(sys.argv) != 4:
+    if len(sys.argv) != 3:
       usage()
       return
     config = Config(sys.argv[2])
     testbed = Testbed(config)
     swarm = Swarm(config)
-    option = sys.argv[3]
-    if option == 'swarm':
-      swarm.compile()
-    elif option == 'testbed':
-      testbed.compile()
-    else:
-      usage()
-      return
+    swarm.compile()
+    testbed.compile()
   elif service == 'config':
     config.print_config()
   elif service == 'testbed':
@@ -304,19 +313,19 @@ def command():
       testbed.halt()
     else:
       usage()
-  elif service == 'swarm':
+  elif service == 'swarm' or service == 'swarm-testbed':
     if len(sys.argv) == 2:
       usage()
       return
     option = sys.argv[2]
     if option == 'lockdown':
-      swarm.lockdown()
+      swarm.lockdown(service == 'swarm-testbed')
     elif option == 'join':
-      swarm.join()
+      swarm.join(service == 'swarm-testbed')
     elif option == 'configure':
-      swarm.configure()
+      swarm.configure(service == 'swarm-testbed')
     elif option == 'clean':
-      swarm.clean()
+      swarm.clean(service == 'swarm-testbed')
     else:
       usage()
   else:
