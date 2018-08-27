@@ -144,14 +144,14 @@ class Swarm:
 
 
   def compile(self):
-    shutil.copy(
+    shutil.copyfile(
       self.config.public_key_file, 
       os.path.join(self.config.build_dir, 'server.pem.pub'))
-    shutil.copy(
+    shutil.copyfile(
       self.config.private_key_file, 
       os.path.join(self.config.build_dir, 'server.pem'))
     
-    shutil.copy(
+    shutil.copyfile(
       self.config.registry_crt_file, 
       os.path.join(self.config.build_dir, 'domain.crt'))
 
@@ -170,7 +170,7 @@ class Swarm:
       self.config.ansible_cfg_dir,
       self.config.build_dir)
     
-    shutil.copy(
+    shutil.copyfile(
       self.hosts_buildfile,
       os.path.join(self.config.build_dir, 'hosts'))
 
