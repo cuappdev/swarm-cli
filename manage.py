@@ -141,14 +141,14 @@ class Swarm:
     self.vagrant_ssh_cmd = '"rm -rf ~/deploy; cp -r /deploy ~; chmod 0400 ~/deploy/.bld/server.pem; python3.5 ~/deploy/manage.py {0} {1}"'
 
   def compile(self):
-    shutil.copy(
+    shutil.copyfile(
       self.config.public_key_file, 
       os.path.join(self.config.build_dir, 'server.pem.pub'))
-    shutil.copy(
+    shutil.copyfile(
       self.config.private_key_file, 
       os.path.join(self.config.build_dir, 'server.pem'))
     
-    shutil.copy(
+    shutil.copyfile(
       self.config.registry_crt_file, 
       os.path.join(self.config.build_dir, 'domain.crt'))
 
@@ -168,20 +168,20 @@ class Swarm:
       self.config.build_dir)
     
     if (self.config.hosts_file != None):
-      shutil.copy(
+      shutil.copyfile(
         self.config.hosts_file,
         os.path.join(self.config.build_dir, 'production_hosts'))
 
   def use_proper_hosts(self, is_testbed):
     if is_testbed:
-      shutil.copy(
+      shutil.copyfile(
         os.path.join(self.config.testbed_dir, 'testbed_hosts'),
         os.path.join(self.config.build_dir, 'hosts'))
     else:
-      shutil.copy(
+      shutil.copyfile(
         os.path.join(self.config.build_dir, 'production_hosts'),
         os.path.join(self.config.build_dir, 'hosts'))
-
+  
   def lockdown(self, is_testbed):
     if os.name == 'nt':
       subprocess.Popen(
