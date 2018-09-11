@@ -1,6 +1,3 @@
-[Default]
-UsingTestbed=true
-
 [Testbed]
 TestbedSize=2
 IPMask24=192.168.70

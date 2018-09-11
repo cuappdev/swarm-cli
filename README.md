@@ -66,9 +66,6 @@ The `server.pem` and `server.pem.pub` files are the private and public SSH keys 
 The `swarm.ini` file (which you should have set up using `swarm.ini.in` - read the instructions) provides an interface to setup a testbed and determines whether or not the tool uses it. A rundown of the file is as follows:
 
 ```
-[Default]
-UsingTestbed=true # Whether or not to deploy to the testbed
-
 [Testbed]
 TestbedSize=5 # The number of nodes in the testbed
 IPMask24=192.168.69 # The first 24 bits of the IP addresses to assign machines in the testbed
@@ -83,13 +80,11 @@ These are commands display information about the tool.
 
 This prints out a usage description with all commands and a short description of each one.
 
-### `python manage.py compile <BUNDLE_DIR> testbed`
+### `python manage.py compile <BUNDLE_DIR>`
 
-This compiles the testbed using the parameters in the `swarm.ini` file and the security information included in the bundle `BUNDLE_DIR`. You should run this command *only if* you want to update the testbed. Recompiling will delete Vagrant metadata about machines that have been already created, which means the next `python manage.py testbed up` command will recreate the machines. This wastes space and can be a hassle to clean up later.
+This compiles the Ansible configuration, inventory, playbooks, security information, and Docker Compose setup into a single directory to ease deployment concerns and eliminate issues with relative paths. The Ansible deployment must be recompiled after every change to the bundle `BUNDLE_DIR`. 
 
-### `python manage.py compile <BUNDLE_DIR> swarm`
-
-This compiles the Ansible configuration, inventory, playbooks, security information, and Docker Compose setup into a single directory to ease deployment concerns and eliminate issues with relative paths. The Ansible deployment must be recompiled after every change to the bundle `BUNDLE_DIR`. Unlike with the testbed, it is safe to recompile whenever.
+This also compiles the testbed using the parameters in the `swarm.ini` file and the security information included in the bundle `BUNDLE_DIR`. Recompiling will delete Vagrant metadata about machines that have been already created, which means the next `python manage.py testbed up` command will recreate the machines. Keep this in mind, as this wastes space and can be a hassle to clean up later.
 
 ### `python manage.py config`
 
@@ -138,3 +133,11 @@ This uploads the Docker Compose setup to the first manager in the Swarm, and ins
 ### `python manage.py swarm clean`
 
 This stops a Docker Stack (assumed to be called `the-stack`) and removes all containers and images from the Swarm.
+
+## Swarm on the Testbed
+
+The commands are slightly duplicated to easily operate on a running testbed.
+
+### `python manage.py swarm-testbed [above command]`
+
+This runs the Swarm operation `[above command]` on the testbed.
