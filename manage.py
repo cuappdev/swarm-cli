@@ -112,10 +112,10 @@ class Testbed:
         ip_str = self.config.ip_mask_24 + '.' + str(i + 1 + self.config.ip_mask_8_offset)
         file.write(ip_str + '\n')
     
-    shutil.copyfile(
+    shutil.copy(
       self.config.public_key_file, 
       os.path.join(self.config.testbed_dir, 'server.pem.pub'))
-    shutil.copyfile(
+    shutil.copy(
       self.config.private_key_file, 
       os.path.join(self.config.testbed_dir, 'server.pem'))
 
@@ -141,14 +141,14 @@ class Swarm:
     self.vagrant_ssh_cmd = '"rm -rf ~/deploy; cp -r /deploy ~; chmod 0400 ~/deploy/.bld/server.pem; python3.5 ~/deploy/manage.py {0} {1}"'
 
   def compile(self):
-    shutil.copyfile(
+    shutil.copy(
       self.config.public_key_file, 
       os.path.join(self.config.build_dir, 'server.pem.pub'))
-    shutil.copyfile(
+    shutil.copy(
       self.config.private_key_file, 
       os.path.join(self.config.build_dir, 'server.pem'))
     
-    shutil.copyfile(
+    shutil.copy(
       self.config.registry_crt_file, 
       os.path.join(self.config.build_dir, 'domain.crt'))
 
@@ -168,17 +168,17 @@ class Swarm:
       self.config.build_dir)
     
     if (self.config.hosts_file != None):
-      shutil.copyfile(
+      shutil.copy(
         self.config.hosts_file,
         os.path.join(self.config.build_dir, 'production_hosts'))
 
   def use_proper_hosts(self, is_testbed):
     if is_testbed:
-      shutil.copyfile(
+      shutil.copy(
         os.path.join(self.config.testbed_dir, 'testbed_hosts'),
         os.path.join(self.config.build_dir, 'hosts'))
     else:
-      shutil.copyfile(
+      shutil.copy(
         os.path.join(self.config.build_dir, 'production_hosts'),
         os.path.join(self.config.build_dir, 'hosts'))
   
@@ -202,6 +202,10 @@ class Swarm:
         cwd=self.config.build_dir, 
         env=temp_env).wait()
     subprocess.Popen(
+      ['ansible-playbook', 'install-docker.yml'], 
+      cwd=self.config.build_dir, 
+      env=temp_env).wait()
+    subprocess.Popen(
       ['ansible-playbook', 'add-sudo-users.yml'], 
       cwd=self.config.build_dir, 
       env=temp_env).wait()
@@ -222,10 +226,6 @@ class Swarm:
     self.use_proper_hosts(is_testbed)
     temp_env = os.environ.copy()
     temp_env['ANSIBLE_CONFIG'] = 'appdev.cfg'
-    subprocess.Popen(
-      ['ansible-playbook', 'install-docker.yml'], 
-      cwd=self.config.build_dir, 
-      env=temp_env).wait()
     subprocess.Popen(
       ['ansible-playbook', 'swarm-join.yml'], 
       cwd=self.config.build_dir,
