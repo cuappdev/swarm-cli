@@ -17,13 +17,13 @@
         regexp: '^%wheel'
         line: '%wheel ALL=(ALL) NOPASSWD: ALL'
         validate: visudo -cf %s
-    - name: add users to wheel group
+    - name: add users to docker, wheel groups
       user:
         name: "{{ item }}"
         state: present
         createhome: yes
         shell: /bin/bash
-        groups: wheel
+        groups: docker, wheel
         append: yes
       with_items: "{{ users }}"
     - name: ensure users have .ssh directory
