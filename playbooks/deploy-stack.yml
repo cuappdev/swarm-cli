@@ -1,0 +1,13 @@
+--- 
+- name: deploy and update compose file
+  hosts: manager[0]
+  become: yes
+  tasks:
+    - name: update docker-compose file
+      copy:
+        src: docker-compose
+        dest: /home/appdev/deploy
+    - name: start stack
+      shell: sudo docker stack deploy --compose-file docker-compose.yml the-stack
+      args:
+        chdir: /home/appdev/deploy/docker-compose

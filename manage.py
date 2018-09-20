@@ -243,6 +243,23 @@ class Swarm:
         cwd=self.config.build_dir,
         env=temp_env).wait()
 
+  def deploy(self, is_testbed):
+    if os.name == 'nt':
+      subprocess.Popen(
+          ['vagrant', 'ssh', '-c', self.vagrant_ssh_cmd.format(
+              'swarm-testbed' if is_testbed else 'swarm', 'deploy')
+          ],
+          cwd=self.config.current_dir).wait()
+      return
+
+    self.use_proper_hosts(is_testbed)
+    temp_env = os.environ.copy()
+    temp_env['ANSIBLE_CONFIG'] = 'appdev.cfg'
+    subprocess.Popen(
+        ['ansible-playbook', 'deploy-stack.yml'],
+        cwd=self.config.build_dir,
+        env=temp_env).wait()
+
   def configure(self, is_testbed):
     if os.name == 'nt':
       subprocess.Popen(
@@ -337,15 +354,20 @@ def command():
     if len(sys.argv) == 2:
       usage()
       return
+
+    is_testbed = service == 'swarm-testbed'
     option = sys.argv[2]
+
     if option == 'lockdown':
-      swarm.lockdown(service == 'swarm-testbed')
+      swarm.lockdown(is_testbed)
     elif option == 'join':
-      swarm.join(service == 'swarm-testbed')
+      swarm.join(is_testbed)
     elif option == 'configure':
-      swarm.configure(service == 'swarm-testbed')
+      swarm.configure(is_testbed)
+    elif option == 'deploy':
+      swarm.deploy(is_testbed)
     elif option == 'clean':
-      swarm.clean(service == 'swarm-testbed')
+      swarm.clean(is_testbed)
     else:
       usage()
   else:
