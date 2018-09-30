@@ -212,17 +212,15 @@ class Swarm:
           cwd=self.config.build_dir,
           env=temp_env).wait()
     subprocess.Popen(
+        ['ansible-playbook', 'security-lockdown.yml'],
+        cwd=self.config.build_dir,
+        env=temp_env).wait()
+    subprocess.Popen(
         ['ansible-playbook', 'install-docker.yml'],
         cwd=self.config.build_dir,
         env=temp_env).wait()
     subprocess.Popen(
         ['ansible-playbook', 'add-sudo-users.yml'],
-        cwd=self.config.build_dir,
-        env=temp_env).wait()
-
-    temp_env['ANSIBLE_CONFIG'] = 'appdev.cfg'
-    subprocess.Popen(
-        ['ansible-playbook', 'security-lockdown.yml'],
         cwd=self.config.build_dir,
         env=temp_env).wait()
 
