@@ -10,9 +10,8 @@ import jinja2
 import texttable
 
 class Config:
-
   def __init__(self, bundle_path=None):
-    self.config = configparser.ConfigParser()
+    self.onfig = configparser.ConfigParser()
 
     self.current_dir = os.path.dirname(os.path.abspath(__file__))
 
