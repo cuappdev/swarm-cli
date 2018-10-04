@@ -6,7 +6,8 @@
     - name: copy over docker compose
       copy:
         src: docker-compose
-        dest: /home/appdev/deploy
+        dest: /home/appdev/
+        owner: appdev
 
 - hosts: all
   become: yes
@@ -19,9 +20,3 @@
       copy:
         src: domain.crt
         dest: /etc/docker/certs.d/104.236.60.90:443/ca.crt
-    # - name: copy over registry tls certificate again
-    #   copy:
-    #     src: domain.crt
-    #     dest: /usr/local/share/ca-certificates/104.236.60.90.crt
-    # - name: update the ubuntu trusted certificates
-    #   command: update-ca-certificates
