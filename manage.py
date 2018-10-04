@@ -202,10 +202,6 @@ class Swarm:
     self.use_proper_hosts(is_testbed)
     temp_env = os.environ.copy()
     temp_env['ANSIBLE_CONFIG'] = 'root.cfg'
-    subprocess.Popen(
-        ['ansible-playbook', 'python-bootstrap.yml'],
-        cwd=self.config.build_dir,
-        env=temp_env).wait()
     if not is_testbed:
       subprocess.Popen(
           ['ansible-playbook', 'update-upgrade.yml'],
