@@ -8,15 +8,3 @@
         src: docker-compose
         dest: /home/appdev/
         owner: appdev
-
-- hosts: all
-  become: yes
-  tasks:
-    - name: ensure tls certificate directory exists
-      file:
-        path: /etc/docker/certs.d/104.236.60.90:443
-        state: directory
-    - name: copy over registry tls certificate
-      copy:
-        src: domain.crt
-        dest: /etc/docker/certs.d/104.236.60.90:443/ca.crt
