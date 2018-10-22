@@ -1,9 +1,10 @@
-*.vagrant
-*.pem
-*.pub
-hosts
-*.log
-venv
-.bld
-docker-compose
 swarm.ini
+
+# virtualenv
+venv
+
+# build directory
+.bld 
+
+# ansible roles
+roles
