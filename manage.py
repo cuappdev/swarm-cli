@@ -32,6 +32,8 @@ class Config:
     self.compose_dir = os.path.join(self.bundle_dir, 'docker-compose')
     if (bundle_path != None):
       self.hosts_file = os.path.join(self.bundle_dir, 'hosts')
+    else:
+      self.hosts_file = None
 
     self.public_key_file = os.path.join(self.bundle_dir, 'server.pem.pub')
     self.private_key_file = os.path.join(self.bundle_dir, 'server.pem')
