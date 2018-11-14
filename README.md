@@ -13,30 +13,24 @@ We compartmentalize the deployment information for each of our backends into *de
 ## Install
 
 Install the following technologies on your system:
-- [Python 3.5 or above](https://www.python.org/downloads/)
+- [Python 3.6 or above](https://www.python.org/downloads/)
 - [virtualenv](https://virtualenv.pypa.io/en/stable/)
 - [Vagrant with Virtualbox](https://www.vagrantup.com/downloads.html)
 - [Ansible](http://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html)
 
-Yes, you read that right. *Python 3.5 or above.* It's [current year](https://www.google.com/search?q=what+is+the+year) for Guido's sake.
-
 In the project root, run the following:
 ```
 virtualenv venv
-source venv/bin/activate # On macOS and Linux
-venv\Scripts\activate.bat # On Windows
-pip install -r requirements.txt # in virtual environment
-python manage.py # in virtual environment, run this command to check
+source venv/bin/activate 
+pip install -r requirements.txt
+ansible-galaxy install --roles-path roles -r requirements.yml  # install ansible roles
+python manage.py  # run this command to check commands
 ```
 
 Once you've done that, copy `swarm.ini.in` to `swarm.ini`. You will use `swarm.ini` for configuration, whereas `swarm.ini.in` is the initial template.
 ```
 cp swarm.ini.in swarm.ini
 ```
-
-### Windows
-
-Ansible does not support Windows at the moment, and so you must run certain commands from within a Vagrant machine. A Vagrantfile for this machine has been provided. Simply run `vagrant up` to boot up the machine and make sure that it is running when using this utility. The tool has been written such that if it detects it is on Windows, it will run the command inside the machine automatically. You won't ever need to SSH into the machine, but it will have some extra delay.
 
 ## Deployment bundles
 
@@ -112,13 +106,13 @@ These commands will provision a cluster of machines, locking down their access u
 
 ### `python manage.py swarm lockdown`
 
-This locks down the cluster by creating an `appdev` user on all machines and disabling `root` login. In additon, it only allows traffic on the following ports:
-- 22 TCP
-- 80 TCP
-- 443 TCP
-- 2377 TCP
-- 4789 UDP
-- 7946 TCP/UDP
+This locks down the cluster by creating an `appdev` user on all machines and disabling `root` login. In addition, it only allows traffic on the following ports:
+- `22 TCP`
+- `80 TCP`
+- `443 TCP`
+- `2377 TCP`
+- `4789 UDP`
+- `7946 TCP/UDP`
 
 Since machines are locked down partially using the `root` user, you can only run this command *once* per cluster.
 
